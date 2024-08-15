@@ -289,24 +289,33 @@ function drawEntities(entity_items, entity_type, entity_svg, x_position, transit
 function drawEntityConnections(entity_svg) {
     // Draw the Group - Category connections
     paper_groups.forEach((pg, pgi) => {
-        let x_pos_from = 250 + 10;
+        let x_pos_from = 250 + 10; // Width of the first box + margin
         let y_pos_from = 0;
-        let x_pos_to = attributes.width_svg * box_cutoffs[1] + 10;
+        let x_pos_to = attributes.width_svg * box_cutoffs[1] + 10; // Start of the second box + margin
         let y_pos_to = 0;
 
+        // Create a list of categories for each group.
+        // And a list of papers for each category.
         let related_categories = [];
         let paper_sources = papers.filter((p, pi) => {
-            paper_categories.forEach(pc => {
-                if(pc['paper_index'].includes(pi)) {
-                    related_categories.push(pc);
-                }
-            }, pi);
             return pg['paper_index'].includes(pi);
         });
-        console.log(pg);
+
+        paper_categories.forEach((pc, pci) => {
+            // Get the list of common papers between the group and category
+            let group_category_papers = pc['paper_index'].filter(pc_paper => {
+                return pg['paper_index'].includes(pc_paper);
+            }, pg);
+
+            if(group_category_papers.length > 0) {
+                if(related_categories.indexOf(pci) === -1) {
+                    related_categories.push(pci);
+                }
+            }
+        });
 
         if(related_categories.length > 0) {
-            related_categories.forEach((rc, rci) => {
+            related_categories.forEach((rci) => {
                 y_pos_from = 15 + (pgi + 1) * 20;
                 y_pos_to = 15 + (rci + 1) * 20;
 
@@ -314,88 +323,113 @@ function drawEntityConnections(entity_svg) {
                     source: [x_pos_from, y_pos_from],
                     target: [x_pos_to, y_pos_to]
                 });
-                console.log(rc);
+                console.log(rci);
+                console.log(paper_categories[rci]);
 
                 entity_svg.append('path')
                     .attr('d', link)
-                    .attr('class', 'entity-connection entity-connection-group-category entity-connection-from-' + pg['group'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + rc['category'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+                    .attr('class', 'entity-connection entity-connection-group-category entity-connection-from-' + pg['group'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_categories[rci]['category'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
                     //.attr('stroke-width', where_items.length)
                     .attr('fill', 'none');
             });
         }
     });
-    return;
-    // Draw the WHERE - WHEN connections
-    en_where.forEach(w => {
-        let x_pos_from = 150 + attributes.width_svg * box_cutoffs[1] + 10;
+
+    // Draw the CATEGORY - YEAR connections
+    paper_categories.forEach((pc, pci) => {
+        let x_pos_from = 250 + attributes.width_svg * box_cutoffs[1] + 10;
         let y_pos_from = 0;
         let x_pos_to = attributes.width_svg * box_cutoffs[2] + 10;
         let y_pos_to = 0;
 
-        // Get the files where the location is mentioned
-        let entity_files = entities.filter(e => {
-            return (e.entity === w && e.entity_type === 'GPE');
-        }).map(e => e.file);
+        // Create a list of years for each category.
+        let related_years = [];
+        let paper_sources = papers.filter((p, pi) => {
+            return pc['paper_index'].includes(pi);
+        });
 
-        // Get the dates where the location is mentioned
-        let when_items = [...new Set(entities.filter(e => (e.entity_type === 'DATE' && entity_files.includes(e.file))).map(e => e.entity))];
+        paper_years.forEach((py, pyi) => {
+            // Get the list of common papers between the group and category
+            let category_year_papers = py['paper_index'].filter(py_paper => {
+                return pc['paper_index'].includes(py_paper);
+            }, pc);
 
-        // Draw the connections between the location and date
-        if (when_items.length > 0) {
-            when_items.forEach(d => {
-                y_pos_from = 15 + (en_where.indexOf(w) + 1) * 20;
-                y_pos_to = 15 + (en_when.indexOf(d) + 1) * 20;
+            if(category_year_papers.length > 0) {
+                if(related_years.indexOf(pyi) === -1) {
+                    related_years.push(pyi);
+                }
+            }
+        });
+
+        if(related_years.length > 0) {
+            related_years.forEach((ryi) => {
+                y_pos_from = 15 + (pci + 1) * 20;
+                y_pos_to = 15 + (ryi + 1) * 20;
 
                 const link = d3.linkHorizontal()({
                     source: [x_pos_from, y_pos_from],
                     target: [x_pos_to, y_pos_to]
                 });
+                console.log(ryi);
+                console.log(paper_years[ryi]);
 
                 entity_svg.append('path')
                     .attr('d', link)
-                    .attr('class', 'entity-connection entity-connection-where-when entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    //.attr('stroke-width', when_items.length)
+                    .attr('class', 'entity-connection entity-connection-category-year entity-connection-from-' + pc['category'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_years[ryi]['year'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+                    //.attr('stroke-width', where_items.length)
                     .attr('fill', 'none');
             });
         }
     });
 
-    if (show_what) {
-        // Draw the WHEN - WHAT connections
-        en_when.forEach(d => {
-            let x_pos_from = 150 + attributes.width_svg * box_cutoffs[2] + 10;
-            let y_pos_from = 0;
-            let x_pos_to = attributes.width_svg * box_cutoffs[3] + 10;
-            let y_pos_to = 0;
+    // Draw the YEAR - AUTHOR connections
+    paper_years.forEach((py, pyi) => {
+        let x_pos_from = 250 + attributes.width_svg * box_cutoffs[2] + 10;
+        let y_pos_from = 0;
+        let x_pos_to = attributes.width_svg * box_cutoffs[3] + 10;
+        let y_pos_to = 0;
 
-            // Get the files where the date is mentioned
-            let entity_files = entities.filter(e => {
-                return (e.entity === d && e.entity_type === 'DATE');
-            }).map(e => e.file);
+        // Create a list of years for each category.
+        let related_authors = [];
+        let paper_sources = papers.filter((p, pi) => {
+            return py['paper_index'].includes(pi);
+        });
 
-            // Get the events where the date is mentioned
-            let what_items = [...new Set(entities.filter(e => (e.entity_type === 'VERB' && entity_files.includes(e.file))).map(e => e.entity))];
+        paper_authors.forEach((pa, pai) => {
+            // Get the list of common papers between the group and category
+            let year_author_papers = pa['paper_index'].filter(pa_paper => {
+                return py['paper_index'].includes(pa_paper);
+            }, py);
 
-            // Draw the connections between the date and event
-            if (what_items.length > 0) {
-                what_items.forEach(e => {
-                    y_pos_from = 15 + (en_when.indexOf(d) + 1) * 20;
-                    y_pos_to = 15 + (en_what.indexOf(e) + 1) * 20;
-
-                    const link = d3.linkHorizontal()({
-                        source: [x_pos_from, y_pos_from],
-                        target: [x_pos_to, y_pos_to]
-                    });
-
-                    entity_svg.append('path')
-                        .attr('d', link)
-                        .attr('class', 'entity-connection entity-connection-when-what entity-connection-from-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        //.attr('stroke-width', what_items.length)
-                        .attr('fill', 'none');
-                });
+            if(year_author_papers.length > 0) {
+                if(related_authors.indexOf(pai) === -1) {
+                    related_authors.push(pai);
+                }
             }
         });
-    }
+
+        if(related_authors.length > 0) {
+            related_authors.forEach((rai) => {
+                y_pos_from = 15 + (pyi + 1) * 20;
+                y_pos_to = 15 + (rai + 1) * 20;
+
+                const link = d3.linkHorizontal()({
+                    source: [x_pos_from, y_pos_from],
+                    target: [x_pos_to, y_pos_to]
+                });
+                console.log(rai);
+                console.log(paper_authors[rai]);
+
+                entity_svg.append('path')
+                    .attr('d', link)
+                    .attr('class', 'entity-connection entity-connection-year-author entity-connection-from-' + py['year'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_authors[rai]['author'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+                    //.attr('stroke-width', where_items.length)
+                    .attr('fill', 'none');
+            });
+        }
+    });
+
+    return;
 }
 
 /**
@@ -407,6 +441,7 @@ function drawEntityConnections(entity_svg) {
  */
 function handleMouseOverRect(d, i) {
     const entity_svg = d3.selectAll('#entity-visualization').select('svg');
+    return;
     let who_items, when_items, where_items, what_items;
 
     // Dim all rectangles
@@ -677,6 +712,7 @@ function handleMouseOutRect(d, i) {
  * @param i
  */
 function handleMouseClickRect(d, i) {
+    return;
     d3.select('#entity-texts').html('');
     let entity_files = d3.select(d.target).attr('data-files').split(',');
     entity_files.forEach(f => {
