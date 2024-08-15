@@ -1,0 +1,37 @@
+/**
+ * File to hold layout related classes
+ */
+
+.container {
+  &.header {
+    margin-bottom: 1.5rem;
+  }
+}
+
+.image-transitions {
+  position: relative;
+  height: 450px;
+
+  .image {
+    position: absolute;
+    display: block;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    animation: fadeInOut 4s infinite;
+
+    &.image-1 {
+      opacity: 1;
+    }
+
+    &.image-2 {
+      opacity: 1;
+      animation-delay: 2s;
+    }
+
+    &.image-3 {
+      opacity: 1;
+    }
+  }
+}

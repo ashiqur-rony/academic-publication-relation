@@ -1,0 +1,103 @@
+/**
+ * Utility file to hold some text and layout manipulation
+ * @author: Ashiqur Rahman
+ */
+.text {
+  &-left {
+    text-align: left;
+  }
+
+  &-right {
+    text-align: right;
+  }
+
+  &-center {
+    text-align: center;
+  }
+
+  &-justify {
+    text-align: justify;
+  }
+}
+
+.w- {
+  &25 {
+    width: 25%;
+  }
+
+  &50 {
+    width: 50%;
+  }
+
+  &75 {
+    width: 75%;
+  }
+
+  &100 {
+    width: 100%;
+  }
+}
+
+.m {
+  &0 {
+    margin: 0;
+  }
+
+  &t0 {
+    margin-top: 0;
+  }
+
+  &b0 {
+    margin-bottom: 0;
+  }
+
+  &l0 {
+    margin-left: 0;
+  }
+
+  &r0 {
+    margin-right: 0;
+  }
+}
+
+.p {
+  &0 {
+    padding: 0;
+  }
+
+  &t0 {
+    padding-top: 0;
+  }
+
+  &b0 {
+    padding-bottom: 0;
+  }
+
+  &l0 {
+    padding-left: 0
+  }
+
+  &r0 {
+    padding-right: 0
+  }
+}
+
+.d- {
+  &none {
+    display: none;
+  }
+
+  &flex {
+    display: flex;
+  }
+
+  &block {
+    display: block;
+  }
+}
+
+.spacer {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  display: block;
+}

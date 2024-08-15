@@ -1,0 +1,172 @@
+/**
+ * Custom stylesheet that aggregates all the classes
+ * @author: Ashiqur Rahman
+ */
+/**
+ * File to hold layout related classes
+ */
+.container.header {
+  margin-bottom: 1.5rem;
+}
+
+.image-transitions {
+  position: relative;
+  height: 450px;
+}
+.image-transitions .image {
+  position: absolute;
+  display: block;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  animation: fadeInOut 4s infinite;
+}
+.image-transitions .image.image-1 {
+  opacity: 1;
+}
+.image-transitions .image.image-2 {
+  opacity: 1;
+  animation-delay: 2s;
+}
+.image-transitions .image.image-3 {
+  opacity: 1;
+}
+
+/**
+ * Utility file to hold some text and layout manipulation
+ * @author: Ashiqur Rahman
+ */
+.text-left {
+  text-align: left;
+}
+.text-right {
+  text-align: right;
+}
+.text-center {
+  text-align: center;
+}
+.text-justify {
+  text-align: justify;
+}
+
+.w-25 {
+  width: 25%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-75 {
+  width: 75%;
+}
+.w-100 {
+  width: 100%;
+}
+
+.m0 {
+  margin: 0;
+}
+.mt0 {
+  margin-top: 0;
+}
+.mb0 {
+  margin-bottom: 0;
+}
+.ml0 {
+  margin-left: 0;
+}
+.mr0 {
+  margin-right: 0;
+}
+
+.p0 {
+  padding: 0;
+}
+.pt0 {
+  padding-top: 0;
+}
+.pb0 {
+  padding-bottom: 0;
+}
+.pl0 {
+  padding-left: 0;
+}
+.pr0 {
+  padding-right: 0;
+}
+
+.d-none {
+  display: none;
+}
+.d-flex {
+  display: flex;
+}
+.d-block {
+  display: block;
+}
+
+.spacer {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  display: block;
+}
+
+/**
+ * Hold the animation related classes
+ */
+@keyframes fadeInOut {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+/**
+ * Styles for the month controls
+ */
+svg {
+  font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+svg g.entity-box rect.entity-rect {
+  border: 1px solid #333333;
+}
+svg g.entity-box rect.entity-rect.entity-rect-group {
+  fill: #aa9cfc;
+  color: #000000;
+}
+svg g.entity-box rect.entity-rect.entity-rect-category {
+  fill: #feca74;
+  color: #000000;
+}
+svg g.entity-box rect.entity-rect.entity-rect-author {
+  fill: #bfe1d9;
+  color: #000000;
+}
+svg g.entity-box rect.entity-rect.entity-rect-year {
+  fill: #c3a7ae;
+  color: #000000;
+}
+svg g.entity-box text {
+  fill: #000000;
+  font-size: 12px;
+  font-weight: 600;
+}
+svg .entity-connection {
+  stroke: #000000;
+}
+svg .entity-connection.entity-connection-group-category {
+  stroke: #aa9cfc;
+}
+svg .entity-connection.entity-connection-category-year {
+  stroke: #feca74;
+}
+svg .entity-connection.entity-connection-year-author {
+  stroke: #bfe1d9;
+}
+
+/*# sourceMappingURL=style.css.map */
