@@ -1,25 +1,27 @@
-# Visual analytics tool for text data
-The dataset contains 41 text documents consisting of fictional reports about suspicious activities from intelligence agencies, which we will use to create an interactive visualization. The goal of the visualization is to represent the textual data for an analyst to identify connections and potential threats easily. Through our visual analytics tool, we will try to answer WHO, WHEN, and WHERE for possible threats. 
+# Visual analytics tool for academic publications
+The visual analytics tool is developed to visualize the relationships between attributes in academic publications. This tool can be useful to find relation between researchers, research domains, and progress of research over time. The tool is developed using `D3.js` and `HTML`. 
 
 ## Dataset
-The source dataset is available in the `data` folder. The dataset contains 41 text files, each containing a report about suspicious activities. The reports are from different intelligence agencies. We used `Spacy` to identify named entities and verb phrases from the text. We also used `Spacy` to render the HTML with highlighted entities. The rendered HTML is then used to create highlighted text visualization of the source files.
+The dataset is curated by the author containing `64` academic publications in the field of `Non-destructive Inspection`. The publications are categorized in four primary groups and 19 categories.
 
-The following CSV files are extracted from the text files:
+The following CSV files are used for the visualization:
 
-**`combined_data.csv`**    
-This file contains all the texts from all the source text files, along with the source and report date.
+**`categories.csv`**    
+This file contains all the `groups` and `categories` of the publications.
 
-**`entities.csv`**  
-This file contains all the entities extracted from the texts.
-
-**`renders.csv`**  
-This file contains the rendered HTML from the texts with highlighted entities.
-
-**`nouns.csv`**  
-This file contains all the noun phrases from the texts. We did not use this file in the visualization.
+**`ndi_papers.csv`**  
+This file contains all the academic publications with many different attributes. Only the attributes used for the visualization are listed below:
+- `Title`
+- `Authors`
+- `Publication Year`
+- `Abstract`
+- `Group`
+- `Category`
+- ...
+- ...
 
 ### Data preprocessing
-The data preprocessing is done using `Spacy`. The source `notebook` for the preprocessing is available at: https://gist.github.com/ashiqur-rony/d4016e3301b96b48252e7ea4dd3c293a 
+The data preprocessing is done using `Pandas` to create encoding for authors and perform cleanup on different attributes. This cleanup helps with the exploration and understanding of the data. However, it is not mandatory for the visualization. 
 
 ## Visualization
-A live version of the visual analytics tool is available at: https://ashiqur-rony.github.io/visualize-entity-relations/
+A live version of the visual analytics tool is available at: https://ashiqur-rony.github.io/academic-publication-relation/
