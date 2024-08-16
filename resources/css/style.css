@@ -168,5 +168,8 @@ svg .entity-connection.entity-connection-category-year {
 svg .entity-connection.entity-connection-year-author {
   stroke: #bfe1d9;
 }
+svg .entity-connection.dim {
+  opacity: 0.05;
+}
 
 /*# sourceMappingURL=style.css.map */

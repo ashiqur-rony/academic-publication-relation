@@ -53,5 +53,9 @@ svg {
     &.entity-connection-year-author {
       stroke: #bfe1d9;
     }
+
+    &.dim {
+      opacity: 0.05;
+    }
   }
 }

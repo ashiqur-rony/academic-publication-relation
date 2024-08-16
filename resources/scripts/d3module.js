@@ -19,6 +19,25 @@ let default_filter = {
     'min_mpg': 0,
 }
 
+let default_entities = [
+    {
+        'entity': 'group',
+        'order': 1
+    },
+    {
+        'entity': 'category',
+        'order': 2
+    },
+    {
+        'entity': 'year',
+        'order': 3
+    },
+    {
+        'entity': 'author',
+        'order': 4
+    }
+];
+
 // Active filters at any point of time
 let active_filter = {...default_filter};
 
@@ -39,14 +58,9 @@ function load_data(type) {
         d3.csv("resources/data/ndi_papers.csv")
     ]).then(createVisualization);
 
-    d3.select('#show-what').on('change', function () {
-        show_what = d3.select('#show-what').property('checked');
-        redraw_visualization();
-    });
-
-    d3.select('#reset-button').on('click', function () {
-        redraw_visualization();
-    });
+    // d3.select('#reset-button').on('click', function () {
+    //     redraw_visualization();
+    // });
 }
 
 /**
@@ -169,7 +183,7 @@ function createVisualization(data) {
     // Attributes of the SVG visualization
     attributes = {
         width_svg: 1200,
-        height_svg: (d3.max([paper_groups.length, paper_categories.length, paper_titles.length, paper_authors.length, paper_years.length]) * 20 + 40),
+        height_svg: (d3.max([paper_groups.length, paper_categories.length, paper_authors.length, paper_years.length]) * 20 + 40),
         margin: {
             top: 20,
             right: 20,
@@ -179,6 +193,12 @@ function createVisualization(data) {
         axis: {
             x: 50,
             y: 50
+        },
+        width_entity: {
+            group: 250,
+            category: 250,
+            year: 150,
+            author: 250
         }
     };
 
@@ -204,7 +224,7 @@ function draw_activity_visualization() {
     const t = entity_svg.transition().duration(750);
 
     // Determine the start positions for the boxes
-    box_cutoffs = [0, 0.27, 0.54, 0.80];
+    box_cutoffs = [0, 0.27, 0.54, 0.72];
 
     // Draw the entities
     drawEntities(paper_groups, 'GROUP', entity_svg, (attributes.width_svg * box_cutoffs[0] + 10), t);
@@ -227,9 +247,6 @@ function draw_activity_visualization() {
  * @param transition transition animation
  */
 function drawEntities(entity_items, entity_type, entity_svg, x_position, transition) {
-    // Draw the entities of different types
-
-    console.log(entity_items);
 
     // Draw the entity label
     const entity_label = entity_svg
@@ -240,27 +257,27 @@ function drawEntities(entity_items, entity_type, entity_svg, x_position, transit
         .attr('font-size', '15')
         .attr('font-weight', 'bold')
         .text(entity_type);
-
     // Draw the entity boxes
     const entity_groups = entity_svg
         .selectAll('.entity-box-' + entity_type.toLowerCase())
         .data(entity_items)
         .join('g')
-        .attr('class', d => 'entity-box entity-box-' + entity_type.toLowerCase() + ' entity-box-' + d[entity_type.toLowerCase()].replace(/[^a-zA-Z0-9]/g, '-'))
+        .attr('class', (d, i) => 'entity-box entity-box-' + entity_type.toLowerCase() + ' entity-box-' + d[entity_type.toLowerCase()].replace(/[^a-zA-Z0-9]/g, '-') + ' entity-index-' + i)
         .append('rect')
-        .attr('class', d => 'rect rect-' + d[entity_type.toLowerCase()].replace(/[^a-zA-Z0-9]/g, '-') + ' entity-rect entity-rect-' + entity_type.toLowerCase())
+        .attr('class', (d, i) => 'rect rect-' + d[entity_type.toLowerCase()].replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() + ' entity-rect entity-rect-' + entity_type.toLowerCase() + ' entity-index-' + i)
         .on('mouseover', handleMouseOverRect)
         .on('mouseout', handleMouseOutRect)
         .on('click', handleMouseClickRect)
         .attr('x', x_position)
         .attr('y', (d, i) => 10 + (i + 1) * 20)
-        .attr('width', '250')
+        .attr('width', attributes['width_entity'][entity_type.toLowerCase()])
         .attr('height', '15')
         .attr('opacity', 1)
         .transition(transition)
+        .attr('data-entity-index', (d, i) => i)
         .attr('data-entity-type', entity_type.toLowerCase())
         .attr('data-index', d => {
-            return d['paper_index'].join(',');
+            return [...new Set(d['paper_index'])].join(',');
         });
 
     // Draw the entity names
@@ -272,13 +289,13 @@ function drawEntities(entity_items, entity_type, entity_svg, x_position, transit
         .attr('x', x_position + 5)
         .attr('y', (d, i) => 22 + (i + 1) * 20)
         .text(d => d[entity_type.toLowerCase()])
-        .on('mouseover', handleMouseOverRect)
-        .on('mouseout', handleMouseOutRect)
+        // .on('mouseover', handleMouseOverRect)
+        // .on('mouseout', handleMouseOutRect)
         .on('click', handleMouseClickRect)
         .transition(transition)
         .attr('data-entity-type', entity_type.toLowerCase())
         .attr('data-index', d => {
-            return d['paper_index'].join(',');
+            return [...new Set(d['paper_index'])].join(',');
         });
 }
 
@@ -289,7 +306,7 @@ function drawEntities(entity_items, entity_type, entity_svg, x_position, transit
 function drawEntityConnections(entity_svg) {
     // Draw the Group - Category connections
     paper_groups.forEach((pg, pgi) => {
-        let x_pos_from = 250 + 10; // Width of the first box + margin
+        let x_pos_from = attributes.width_entity.group + 10; // Width of the first box + margin
         let y_pos_from = 0;
         let x_pos_to = attributes.width_svg * box_cutoffs[1] + 10; // Start of the second box + margin
         let y_pos_to = 0;
@@ -307,14 +324,15 @@ function drawEntityConnections(entity_svg) {
                 return pg['paper_index'].includes(pc_paper);
             }, pg);
 
-            if(group_category_papers.length > 0) {
-                if(related_categories.indexOf(pci) === -1) {
+            if (group_category_papers.length > 0) {
+                if (related_categories.indexOf(pci) === -1) {
                     related_categories.push(pci);
                 }
             }
         });
 
-        if(related_categories.length > 0) {
+        if (related_categories.length > 0) {
+
             related_categories.forEach((rci) => {
                 y_pos_from = 15 + (pgi + 1) * 20;
                 y_pos_to = 15 + (rci + 1) * 20;
@@ -323,21 +341,30 @@ function drawEntityConnections(entity_svg) {
                     source: [x_pos_from, y_pos_from],
                     target: [x_pos_to, y_pos_to]
                 });
-                console.log(rci);
-                console.log(paper_categories[rci]);
 
                 entity_svg.append('path')
                     .attr('d', link)
                     .attr('class', 'entity-connection entity-connection-group-category entity-connection-from-' + pg['group'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_categories[rci]['category'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
                     //.attr('stroke-width', where_items.length)
                     .attr('fill', 'none');
+
+                d3.select('rect.entity-rect-category.entity-index-' + rci).attr('data-related-group', d => {
+                    let current_related_groups = d3.select('rect.entity-rect-category.entity-index-' + rci).attr('data-related-group');
+                    if (current_related_groups === null) {
+                        return pgi;
+                    } else {
+                        return [...new Set(current_related_groups.split(',')), pgi].join(',');
+                    }
+                });
             });
+
+            d3.select('rect.entity-rect-group.entity-index-' + pgi).attr('data-related-category', related_categories.join(','));
         }
     });
 
     // Draw the CATEGORY - YEAR connections
     paper_categories.forEach((pc, pci) => {
-        let x_pos_from = 250 + attributes.width_svg * box_cutoffs[1] + 10;
+        let x_pos_from = attributes.width_entity.category + attributes.width_svg * box_cutoffs[1] + 10;
         let y_pos_from = 0;
         let x_pos_to = attributes.width_svg * box_cutoffs[2] + 10;
         let y_pos_to = 0;
@@ -354,14 +381,14 @@ function drawEntityConnections(entity_svg) {
                 return pc['paper_index'].includes(py_paper);
             }, pc);
 
-            if(category_year_papers.length > 0) {
-                if(related_years.indexOf(pyi) === -1) {
+            if (category_year_papers.length > 0) {
+                if (related_years.indexOf(pyi) === -1) {
                     related_years.push(pyi);
                 }
             }
         });
 
-        if(related_years.length > 0) {
+        if (related_years.length > 0) {
             related_years.forEach((ryi) => {
                 y_pos_from = 15 + (pci + 1) * 20;
                 y_pos_to = 15 + (ryi + 1) * 20;
@@ -370,21 +397,30 @@ function drawEntityConnections(entity_svg) {
                     source: [x_pos_from, y_pos_from],
                     target: [x_pos_to, y_pos_to]
                 });
-                console.log(ryi);
-                console.log(paper_years[ryi]);
 
                 entity_svg.append('path')
                     .attr('d', link)
                     .attr('class', 'entity-connection entity-connection-category-year entity-connection-from-' + pc['category'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_years[ryi]['year'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
                     //.attr('stroke-width', where_items.length)
                     .attr('fill', 'none');
+
+                d3.select('rect.entity-rect-year.entity-index-' + ryi).attr('data-related-category', d => {
+                    let current_related_categories = d3.select('rect.entity-rect-year.entity-index-' + ryi).attr('data-related-category');
+                    if (current_related_categories === null) {
+                        return pci;
+                    } else {
+                        return [...new Set(current_related_categories.split(',')), pci].join(',');
+                    }
+                });
             });
+
+            d3.select('rect.entity-rect-category.entity-index-' + pci).attr('data-related-year', related_years.join(','));
         }
     });
 
     // Draw the YEAR - AUTHOR connections
     paper_years.forEach((py, pyi) => {
-        let x_pos_from = 250 + attributes.width_svg * box_cutoffs[2] + 10;
+        let x_pos_from = attributes.width_entity.year + attributes.width_svg * box_cutoffs[2] + 10;
         let y_pos_from = 0;
         let x_pos_to = attributes.width_svg * box_cutoffs[3] + 10;
         let y_pos_to = 0;
@@ -401,14 +437,14 @@ function drawEntityConnections(entity_svg) {
                 return py['paper_index'].includes(pa_paper);
             }, py);
 
-            if(year_author_papers.length > 0) {
-                if(related_authors.indexOf(pai) === -1) {
+            if (year_author_papers.length > 0) {
+                if (related_authors.indexOf(pai) === -1) {
                     related_authors.push(pai);
                 }
             }
         });
 
-        if(related_authors.length > 0) {
+        if (related_authors.length > 0) {
             related_authors.forEach((rai) => {
                 y_pos_from = 15 + (pyi + 1) * 20;
                 y_pos_to = 15 + (rai + 1) * 20;
@@ -417,19 +453,127 @@ function drawEntityConnections(entity_svg) {
                     source: [x_pos_from, y_pos_from],
                     target: [x_pos_to, y_pos_to]
                 });
-                console.log(rai);
-                console.log(paper_authors[rai]);
 
                 entity_svg.append('path')
                     .attr('d', link)
                     .attr('class', 'entity-connection entity-connection-year-author entity-connection-from-' + py['year'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-') + ' entity-connection-to-' + paper_authors[rai]['author'].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
                     //.attr('stroke-width', where_items.length)
                     .attr('fill', 'none');
+
+                d3.select('rect.entity-rect-author.entity-index-' + rai).attr('data-related-year', d => {
+                    let current_related_years = d3.select('rect.entity-rect-author.entity-index-' + rai).attr('data-related-year');
+                    if (current_related_years === null) {
+                        return pyi;
+                    } else {
+                        return [...new Set(current_related_years.split(',')), pyi].join(',');
+                    }
+                });
             });
+
+            d3.select('rect.entity-rect-year.entity-index-' + pyi).attr('data-related-author', related_authors.join(','));
+        }
+    });
+}
+
+/**
+ * Function to handle the mouse over event on a rectangle.
+ * @param entity_svg
+ * @param entity_type
+ * @param current_entity
+ * @param target_element
+ */
+function highlightEntityConnections(entity_svg, entity_type, current_entity, target_element) {
+    // Highlighted related elements to the left
+    highlightLeftEntityConnections(entity_svg, entity_type, current_entity, target_element);
+    // Highlight related elements to the right
+    highlightRightEntityConnections(entity_svg, entity_type, current_entity, target_element);
+}
+
+/**
+ * Highlight the connections to the left of the current entity
+ * @param entity_svg
+ * @param entity_type
+ * @param current_entity
+ * @param target_element
+ */
+function highlightLeftEntityConnections(entity_svg, entity_type, current_entity, target_element) {
+    // Highlight the immediate connections
+    d3.selectAll('.entity-connection.entity-connection-from-' + current_entity[entity_type].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+        .classed('dim', false);
+    d3.selectAll('.entity-connection.entity-connection-to-' + current_entity[entity_type].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+        .classed('dim', false);
+
+    // Highlight current target element
+    highlightEntity(entity_svg, target_element);
+
+    let left_entities = [];
+    let current_entity_order = default_entities.filter(e => e.entity === entity_type)[0].order;
+
+    default_entities.forEach(e => {
+        if (e.order < current_entity_order) {
+            left_entities.push(e);
         }
     });
 
-    return;
+    left_entities.sort((a, b) => b['order'] - a['order']);
+
+    // Go left
+    left_entities.forEach(e => {
+        if (target_element.attr('data-related-' + e['entity'].toLowerCase())) {
+            let related_entities = target_element.attr('data-related-' + e['entity'].toLowerCase()).split(',');
+            related_entities.forEach(re => {
+                let next_target = d3.select('rect.entity-rect-' + e['entity'].toLowerCase() + '.entity-index-' + re);
+                highlightLeftEntityConnections(entity_svg, e['entity'], next_target.data()[0], next_target);
+            });
+        }
+    });
+}
+
+/**
+ * Highlight the connections to the right of the current entity
+ * @param entity_svg
+ * @param entity_type
+ * @param current_entity
+ * @param target_element
+ */
+function highlightRightEntityConnections(entity_svg, entity_type, current_entity, target_element) {
+    // Highlight the immediate connections
+    d3.selectAll('.entity-connection.entity-connection-from-' + current_entity[entity_type].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+        .classed('dim', false);
+    d3.selectAll('.entity-connection.entity-connection-to-' + current_entity[entity_type].toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
+        .classed('dim', false);
+
+    // Highlight current target element
+    highlightEntity(entity_svg, target_element);
+
+    let right_entities = [];
+    let current_entity_order = default_entities.filter(e => e.entity === entity_type)[0].order;
+
+    default_entities.forEach(e => {
+        if (e.order > current_entity_order) {
+            right_entities.push(e);
+        }
+    });
+
+    right_entities.sort((a, b) => a['order'] - b['order']);
+
+    // Go right
+    right_entities.forEach(e => {
+        if (target_element.attr('data-related-' + e['entity'].toLowerCase())) {
+            let related_entities = target_element.attr('data-related-' + e['entity'].toLowerCase()).split(',');
+            related_entities.forEach(re => {
+                let next_target = d3.select('rect.entity-rect-' + e['entity'].toLowerCase() + '.entity-index-' + re);
+                highlightRightEntityConnections(entity_svg, e['entity'], next_target.data()[0], next_target);
+            });
+        }
+    });
+}
+
+function highlightEntity(entity_svg, target_element) {
+    target_element
+        .style('opacity', 1)
+        .style('stroke-width', '1px')
+        .style('stroke', 'black');
 }
 
 /**
@@ -441,8 +585,11 @@ function drawEntityConnections(entity_svg) {
  */
 function handleMouseOverRect(d, i) {
     const entity_svg = d3.selectAll('#entity-visualization').select('svg');
-    return;
     let who_items, when_items, where_items, what_items;
+
+    // First we hide existing connections
+    d3.selectAll('.entity-connection')
+        .classed('dim', true);
 
     // Dim all rectangles
     d3.selectAll('.entity-rect')
@@ -453,244 +600,11 @@ function handleMouseOverRect(d, i) {
         .style('stroke-width', '0px')
         .style('stroke', 'none');
 
-    // Highlight the current rectangle
-    d3.select(d.target)
-        .style('opacity', 1)
-        .style('stroke-width', '1px')
-        .style('stroke', 'black');
-
     // Highlight the connections
     let entity_type = d3.select(d.target).attr('data-entity-type');
-    let entity_files = d3.select(d.target).attr('data-files').split(',');
 
-    d3.selectAll('.entity-connection')
-        .style('opacity', 0.05);
-    // Highlight the connections
-    d3.selectAll('.entity-connection-from-' + i.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-        .style('opacity', 1);
-    d3.selectAll('.entity-connection-to-' + i.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-        .style('opacity', 1);
-
-    if (entity_type === 'who') {
-        // Highlight the connected WHERE rectangles
-        where_items = [...new Set(entities.filter(e => (e.entity_type === 'GPE' && entity_files.includes(e.file))).map(e => e.entity))];
-
-        where_items.forEach(w => {
-            d3.selectAll('.entity-box-where.entity-box-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1)
-                .style('stroke-width', '1px')
-                .style('stroke', 'black');
-
-            // Highlight the connections
-            d3.selectAll('.entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-            d3.selectAll('.entity-connection-to-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-
-            // Highlight the connected WHEN rectangles
-            let where_when_entity_files = entities.filter(e => {
-                return (e.entity === w && e.entity_type === 'GPE');
-            }).map(e => e.file);
-            when_items = [...new Set(entities.filter(e => (e.entity_type === 'DATE' && where_when_entity_files.includes(e.file))).map(e => e.entity))];
-
-            when_items.forEach(d => {
-                d3.selectAll('.entity-box-when.entity-box-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1)
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black');
-
-                // Highlight the connections
-                d3.selectAll('.entity-connection-from-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-                d3.selectAll('.entity-connection-to-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-
-                if (show_what) {
-                    // Highlight the connected WHAT rectangles
-                    let when_what_entity_files = entities.filter(e => {
-                        return (e.entity === d && e.entity_type === 'DATE');
-                    }).map(e => e.file);
-
-                    what_items = [...new Set(entities.filter(e => (e.entity_type === 'VERB' && when_what_entity_files.includes(e.file))).map(e => e.entity))];
-                    what_items.forEach(e => {
-                        d3.selectAll('.entity-box-what.entity-box-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                            .style('opacity', 1)
-                            .style('stroke-width', '1px')
-                            .style('stroke', 'black');
-
-                        // Highlight the connections
-                        d3.selectAll('.entity-connection-from-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                            .style('opacity', 1);
-                        d3.selectAll('.entity-connection-to-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                            .style('opacity', 1);
-                    });
-                }
-            });
-        });
-
-    } else if (entity_type === 'where') {
-        // Highlight the connected WHO rectangles
-        who_items = [...new Set(entities.filter(e => (e.entity_type === 'PERSON' && entity_files.includes(e.file))).map(e => e.entity))];
-
-        who_items.forEach(w => {
-            d3.selectAll('.entity-box-who.entity-box-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1)
-                .style('stroke-width', '1px')
-                .style('stroke', 'black');
-
-            // Highlight the connections
-            d3.selectAll('.entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-            d3.selectAll('.entity-connection-to-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-        });
-
-        // Highlight the connected WHEN rectangles
-        when_items = [...new Set(entities.filter(e => (e.entity_type === 'DATE' && entity_files.includes(e.file))).map(e => e.entity))];
-
-        when_items.forEach(d => {
-            d3.selectAll('.entity-box-when.entity-box-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1)
-                .style('stroke-width', '1px')
-                .style('stroke', 'black');
-
-            // Highlight the connections
-            d3.selectAll('.entity-connection-from-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-            d3.selectAll('.entity-connection-to-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-
-            if (show_what) {
-                // Highlight the connected WHAT rectangles
-                let when_what_entity_files = entities.filter(e => {
-                    return (e.entity === d && e.entity_type === 'DATE');
-                }).map(e => e.file);
-
-                what_items = [...new Set(entities.filter(e => (e.entity_type === 'VERB' && when_what_entity_files.includes(e.file))).map(e => e.entity))];
-                what_items.forEach(w => {
-                    d3.selectAll('.entity-box-what.entity-box-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1)
-                        .style('stroke-width', '1px')
-                        .style('stroke', 'black');
-
-                    // Highlight the connections
-                    d3.selectAll('.entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1);
-                    d3.selectAll('.entity-connection-to-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1);
-                });
-            }
-        });
-
-    } else if (entity_type === 'when') {
-        if (show_what) {
-            // Highlight the connected WHAT rectangles
-            what_items = [...new Set(entities.filter(e => (e.entity_type === 'VERB' && entity_files.includes(e.file))).map(e => e.entity))];
-
-            what_items.forEach(e => {
-                d3.selectAll('.entity-box-what.entity-box-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1)
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black');
-
-                // Highlight the connections
-                d3.selectAll('.entity-connection-from-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-                d3.selectAll('.entity-connection-to-' + e.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-            });
-        }
-
-        // Highlight the connected WHERE rectangles
-        where_items = [...new Set(entities.filter(e => (e.entity_type === 'GPE' && entity_files.includes(e.file))).map(e => e.entity))];
-
-        where_items.forEach(w => {
-            d3.selectAll('.entity-box-where.entity-box-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1)
-                .style('stroke-width', '1px')
-                .style('stroke', 'black');
-
-            // Highlight the connections
-            d3.selectAll('.entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-            d3.selectAll('.entity-connection-to-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-
-            // Highlight the connected WHO rectangles
-            let where_who_entity_files = entities.filter(e => {
-                return (e.entity === w && e.entity_type === 'GPE');
-            }).map(e => e.file);
-
-            who_items = [...new Set(entities.filter(e => (e.entity_type === 'PERSON' && where_who_entity_files.includes(e.file))).map(e => e.entity))];
-            who_items.forEach(p => {
-                d3.selectAll('.entity-box-who.entity-box-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1)
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black');
-
-                // Highlight the connections
-                d3.selectAll('.entity-connection-from-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-                d3.selectAll('.entity-connection-to-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-            });
-        });
-    } else if (entity_type === 'what') {
-        // Highlight the connected WHEN rectangles
-        when_items = [...new Set(entities.filter(e => (e.entity_type === 'DATE' && entity_files.includes(e.file))).map(e => e.entity))];
-
-        when_items.forEach(d => {
-            d3.selectAll('.entity-box-when.entity-box-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1)
-                .style('stroke-width', '1px')
-                .style('stroke', 'black');
-
-            // Highlight the connections
-            d3.selectAll('.entity-connection-from-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-            d3.selectAll('.entity-connection-to-' + d.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                .style('opacity', 1);
-
-            // Highlight the connected WHERE rectangles
-            let when_where_entity_files = entities.filter(e => {
-                return (e.entity === d && e.entity_type === 'DATE');
-            }).map(e => e.file);
-            where_items = [...new Set(entities.filter(e => (e.entity_type === 'GPE' && when_where_entity_files.includes(e.file))).map(e => e.entity))];
-
-            where_items.forEach(w => {
-                d3.selectAll('.entity-box-where.entity-box-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1)
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black');
-
-                // Highlight the connections
-                d3.selectAll('.entity-connection-from-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-                d3.selectAll('.entity-connection-to-' + w.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                    .style('opacity', 1);
-
-                // Highlight the connected WHO rectangles
-                let where_who_entity_files = entities.filter(e => {
-                    return (e.entity === w && e.entity_type === 'GPE');
-                }).map(e => e.file);
-
-                who_items = [...new Set(entities.filter(e => (e.entity_type === 'PERSON' && where_who_entity_files.includes(e.file))).map(e => e.entity))];
-                who_items.forEach(p => {
-                    d3.selectAll('.entity-box-who.entity-box-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1)
-                        .style('stroke-width', '1px')
-                        .style('stroke', 'black');
-
-                    // Highlight the connections
-                    d3.selectAll('.entity-connection-from-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1);
-                    d3.selectAll('.entity-connection-to-' + p.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'))
-                        .style('opacity', 1);
-                });
-            });
-
-        });
-    }
+    // Highlight the connected elements recursively
+    highlightEntityConnections(entity_svg, entity_type, i, d3.select(d.target));
 }
 
 /**
@@ -700,10 +614,13 @@ function handleMouseOverRect(d, i) {
  */
 function handleMouseOutRect(d, i) {
     // Reset the rectangles
-    // d3.selectAll('.entity-box')
-    //     .style('opacity', 0.7)
-    //     .attr('stroke', 'none')
-    //     .style('stroke-width', '0px');
+    d3.selectAll('.entity-box')
+        .style('opacity', 1)
+        .attr('stroke', 'none')
+        .style('stroke-width', '0px');
+    // Reset the connections
+    d3.selectAll('.entity-connection')
+        .classed('dim', false);
 }
 
 /**
@@ -712,16 +629,28 @@ function handleMouseOutRect(d, i) {
  * @param i
  */
 function handleMouseClickRect(d, i) {
-    return;
     d3.select('#entity-texts').html('');
-    let entity_files = d3.select(d.target).attr('data-files').split(',');
-    entity_files.forEach(f => {
-        let render_htmls = renders.filter(r => r.file === f);
-        render_htmls.forEach(r => {
-            d3.select('#entity-texts').append('div').append('h4').html('Source: ' + r.file.split('.')[0].toUpperCase());
-            d3.select('#entity-texts').append('div').html(r.render);
-            d3.select('#entity-texts').append('hr');
+    let paper_indexes = d3.select(d.target).attr('data-index').split(',');
+    let papers_selected = [];
+    if(paper_indexes.length > 0) {
+        papers_selected = papers.filter((p, pi) => {
+            return paper_indexes.includes(pi.toString());
         });
+    }
+
+    console.log(papers_selected);
+    console.log(d, i);
+
+    papers_selected.forEach(p => {
+        let title = p['Title'];
+        let abstract = p['Abstract'];
+        let authors = eval(p['Authors']);
+        let publication_year = p['Publication year'];
+
+        d3.select('#entity-texts').append('div').append('h4').html(title);
+        d3.select('#entity-texts').append('div').append('p').html('[' + publication_year + '] ' + authors.join(', '));
+        d3.select('#entity-texts').append('div').html(abstract);
+        d3.select('#entity-texts').append('hr');
     });
 
     document.getElementById('entity-texts').scrollIntoView({behavior: "smooth"});
